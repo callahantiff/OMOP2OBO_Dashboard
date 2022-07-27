@@ -71,7 +71,7 @@ valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "),
 ```{r}
 valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
          caption = "Measurements", 
-         icon = "fas gfa-vials", 
+         icon = "fas fa-vials", 
          color = lab_color)
 ```
 
@@ -299,7 +299,7 @@ About {data-icon="fa-address-card"}
 
 **The OMOP2OBO Mapping Dashboard**
 
-The US Wildfire Dashboard provides a live update for the ongoing wildfire in the US. This dashboard is built with R using [Rmakrdown](https://rmarkdown.rstudio.com/) and [flexdashboard](https://rmarkdown.rstudio.com/flexdashboard/) framework, and can easily reproduce by others. The code behind the dashboard available [here](https://github.com/RamiKrispin/uswildfire)
+The US Wildfire Dashboard provides a live update for the ongoing wildfire in the US. This dashboard is built with R using [Rmarkdown](https://rmarkdown.rstudio.com/) and [flexdashboard](https://rmarkdown.rstudio.com/flexdashboard/) framework, and can easily reproduce by others. The code behind the dashboard available [here](https://github.com/RamiKrispin/uswildfire)
 
 
 **Mapping Overview**
