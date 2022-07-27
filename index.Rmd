@@ -1,37 +1,360 @@
 ---
-title: "Untitled"
+title: "OMOP2OBO Dashboard"
 output: 
   flexdashboard::flex_dashboard:
+    storyboard: true
+    source_code: embed
     orientation: columns
     vertical_layout: fill
+    social: menu
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
+
+#------------------ Parameters ------------------
+# set value board colors
+# https://www.w3.org/TR/css-color-3/#svg-color
+cond_color <- "forestgreen"
+drug_color <- "purple"
+lab_color <- "#1f77b4"
+
+# placeholder for value board counts
+cond_count <- 97325
+drug_count<- 10245
+lab_count <- 4558
+
+# timestamp for tables
+run_time <- format(Sys.time(), "%a %b %d %X %Y")
+
+# function for data table embedded bar charts
+bar_chart <- function(label, width = "100%", height = "14px", fill = "#00bfc4", background = NULL) {
+  bar <- htmltools::div(style = list(background = fill, width = width, height = height))
+  chart <- htmltools::div(style = list(flexGrow = 1, marginLeft = "6px", background = background), bar)
+  htmltools::div(style = list(display = "flex", alignItems = "center"), label, chart)
+}
+
+
+#------------------ TABLES ------------------
+# create fake table data
+state_names <- rownames(USArrests)
+data <- USArrests 
+data$States <- rownames(data)
+rownames(data) <- NULL
+
 ```
 
-Column {data-width=650}
+
+Mapping Summary {data-icon="fa-map"}
+===================================== 
+
+Column { data-width=150 }
 -----------------------------------------------------------------------
 
-### Chart A
-
+### conditions {.value-box}
 ```{r}
-
+valueBox(value = paste(format(cond_count, big.mark = ","), "", sep = " "), 
+         caption = "Conditions", 
+         icon = "fas fa-procedures", 
+         color = cond_color)
 ```
+
+### drugs {.value-box}
+```{r}
+valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "), 
+         caption = "Drug Ingredients", 
+         icon = "fas fa-pills", 
+         color = drug_color)
+```
+
+### measurements {.value-box}
+```{r}
+valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
+         caption = "Measurements", 
+         icon = "fas fa-vials", 
+         color = lab_color)
+```
+
 
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Chart B
+### Condition Mappings
 
 ```{r}
-
+library(plotly)
+library(rjson)
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
+df <- read.csv(url2, colClasses=c(fips="character"))
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+fig <- plot_ly()
+fig <- fig %>% add_trace(
+    type="choropleth",
+    geojson=counties,
+    locations=df$fips,
+    z=df$unemp,
+    colorscale="Viridis",
+    zmin=0,
+    zmax=12,
+    marker=list(line=list(
+      width=0)
+    )
+  )
+fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
+fig <- fig %>% layout(
+    title = "2016 US Unemployment by County"
+)
+fig <- fig %>% layout(
+    geo = g
+  )
+fig
 ```
 
-### Chart C
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Drug Ingredient Mappings
 
 ```{r}
-
+library(plotly)
+library(rjson)
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
+df <- read.csv(url2, colClasses=c(fips="character"))
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+fig <- plot_ly()
+fig <- fig %>% add_trace(
+    type="choropleth",
+    geojson=counties,
+    locations=df$fips,
+    z=df$unemp,
+    colorscale="Viridis",
+    zmin=0,
+    zmax=12,
+    marker=list(line=list(
+      width=0)
+    )
+  )
+fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
+fig <- fig %>% layout(
+    title = "2016 US Unemployment by County"
+)
+fig <- fig %>% layout(
+    geo = g
+  )
+fig
 ```
 
 
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Measurement Mappings
+
+```{r}
+library(plotly)
+library(rjson)
+url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
+counties <- rjson::fromJSON(file=url)
+url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
+df <- read.csv(url2, colClasses=c(fips="character"))
+g <- list(
+  scope = 'usa',
+  projection = list(type = 'albers usa'),
+  showlakes = TRUE,
+  lakecolor = toRGB('white')
+)
+fig <- plot_ly()
+fig <- fig %>% add_trace(
+    type="choropleth",
+    geojson=counties,
+    locations=df$fips,
+    z=df$unemp,
+    colorscale="Viridis",
+    zmin=0,
+    zmax=12,
+    marker=list(line=list(
+      width=0)
+    )
+  )
+fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
+fig <- fig %>% layout(
+    title = "2016 US Unemployment by County"
+)
+fig <- fig %>% layout(
+    geo = g
+  )
+fig
+```
+
+
+
+Data {data-icon="fa-table"}
+===================================== 
+
+### Condition Occurrence Mappings
+
+```{r table1}
+
+table <- reactable::reactable(
+  data = data,
+  pagination = FALSE,
+  highlight = TRUE,
+  height = 1200,
+  defaultSorted = "States",
+  sortable = TRUE,
+  borderless = TRUE,
+  defaultPageSize = nrow(data),
+  columns = list(
+    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
+    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Assault), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "gold")}),
+    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Rape), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "orange")}),
+    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Murder), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "red")})
+    ))
+
+htmltools::div(
+  class = "condition-mapping-data",
+  htmltools::div(class = "condition-mapping-data-header",
+                 htmltools::div(
+                   class = "condition-mapping-data-title",
+                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Condition Occurrence Mappings"),
+                 paste("Last Update: ", run_time, " EST", sep = "")),
+  table
+)
+```
+
+
+### Drug Ingredient Mappings
+
+```{r table2}
+
+table <- reactable::reactable(
+  data = data,
+  pagination = FALSE,
+  highlight = TRUE,
+  height = 1200,
+  defaultSorted = "States",
+  sortable = TRUE,
+  borderless = TRUE,
+  defaultPageSize = nrow(data),
+  columns = list(
+    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
+    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Assault), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "gold")}),
+    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Rape), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "orange")}),
+    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Murder), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "red")})
+    ))
+
+htmltools::div(
+  class = "drug-mapping-data",
+  htmltools::div(class = "drug-mapping-data-header",
+                 htmltools::div(
+                   class = "drug-mapping-data-title",
+                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Drug Exposure Ingredient Mappings"),
+                 paste("Last Update: ", run_time, " EST", sep = "")),
+  table
+)
+```
+
+
+### Measurement Mappings
+
+```{r table3}
+
+table <- reactable::reactable(
+  data = data,
+  pagination = FALSE,
+  highlight = TRUE,
+  height = 1200,
+  defaultSorted = "States",
+  sortable = TRUE,
+  borderless = TRUE,
+  defaultPageSize = nrow(data),
+  columns = list(
+    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
+    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Assault), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "gold")}),
+    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Rape), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "orange")}),
+    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
+                                cell = function(value) {
+                                width <- paste0(value * 100 / max(data$Murder), "%")
+                                value <- format(value, big.mark = ",")
+                                bar_chart(value, width = width, fill = "red")})
+    ))
+
+htmltools::div(
+  class = "lab-mapping-data",
+  htmltools::div(class = "lab-mapping-data-header",
+                 htmltools::div(
+                   class = "lab-mapping-data-title",
+                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Measurement Mappings"),
+                 paste("Last Update: ", run_time, " EST", sep = "")),
+  table
+)
+```
+
+
+
+About {data-icon="fa-address-card"}
+===================================== 
+
+**The OMOP2OBO Mapping Dashboard**
+
+The US Wildfire Dashboard provides a live update for the ongoing wildfire in the US. This dashboard is built with R using [Rmakrdown](https://rmarkdown.rstudio.com/) and [flexdashboard](https://rmarkdown.rstudio.com/flexdashboard/) framework, and can easily reproduce by others. The code behind the dashboard available [here](https://github.com/RamiKrispin/uswildfire)
+
+
+**Mapping Overview**
+
+Add some example here of a mapping
+
+**OMOP2OBO Users and Usecases**  
+
+
+<br>
+___
+
+We’d love to hear from you! To get in touch with us, please join or start a new [discussion](https://github.com/callahantiff/OMOP2OBO_Dashboard/discussions), create an [issue](https://github.com/callahantiff/OMOP2OBO_Dashboard/issues) or send us an [email](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=callahantiff@gmail.com) 💌
