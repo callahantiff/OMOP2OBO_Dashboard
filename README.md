@@ -1,7 +1,7 @@
 
 # OMOP2OBO Dashboard
 
-The OMOP2OBO Dashboard provides updated statistics, data, and information about the most up-to-date OMOP2OBO mappings. This dashboard is built with R using [`Rmarkdown`](https://rmarkdown.rstudio.com/) and [`flexdashboard`](https://rmarkdown.rstudio.com/flexdashboard/) framework
+The OMOP2OBO Dashboard provides updated statistics, data, and information about the most up-to-date OMOP2OBO mappings. This dashboard is built with R using [`Rmarkdown`](https://rmarkdown.rstudio.com/) and the [`flexdashboard`](https://rmarkdown.rstudio.com/flexdashboard/) framework
 
 <img src="figures/summary.png" width="100%" />
 
