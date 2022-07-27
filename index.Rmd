@@ -71,7 +71,7 @@ valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "),
 ```{r}
 valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
          caption = "Measurements", 
-         icon = "fas fa-vials", 
+         icon = "fas gfa-vials", 
          color = lab_color)
 ```
 
@@ -83,37 +83,16 @@ Column {data-width=350}
 
 ```{r}
 library(plotly)
-library(rjson)
-url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-counties <- rjson::fromJSON(file=url)
-url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
-df <- read.csv(url2, colClasses=c(fips="character"))
-g <- list(
-  scope = 'usa',
-  projection = list(type = 'albers usa'),
-  showlakes = TRUE,
-  lakecolor = toRGB('white')
+library(dplyr)
+
+fig <- ggplot2::diamonds
+fig <- fig %>% count(cut, clarity)
+fig <- fig %>% plot_ly(x = ~cut, y = ~n, color = ~clarity)
+fig <- fig %>% layout(yaxis = list(title = 'Count'),
+                      xaxis = list(title = 'Cut'),
+                      title = "Count of Diamonds by Cut and Clarity"
 )
-fig <- plot_ly()
-fig <- fig %>% add_trace(
-    type="choropleth",
-    geojson=counties,
-    locations=df$fips,
-    z=df$unemp,
-    colorscale="Viridis",
-    zmin=0,
-    zmax=12,
-    marker=list(line=list(
-      width=0)
-    )
-  )
-fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
-fig <- fig %>% layout(
-    title = "2016 US Unemployment by County"
-)
-fig <- fig %>% layout(
-    geo = g
-  )
+
 fig
 ```
 
@@ -125,37 +104,18 @@ Column {data-width=350}
 
 ```{r}
 library(plotly)
-library(rjson)
-url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-counties <- rjson::fromJSON(file=url)
-url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
-df <- read.csv(url2, colClasses=c(fips="character"))
-g <- list(
-  scope = 'usa',
-  projection = list(type = 'albers usa'),
-  showlakes = TRUE,
-  lakecolor = toRGB('white')
-)
-fig <- plot_ly()
-fig <- fig %>% add_trace(
-    type="choropleth",
-    geojson=counties,
-    locations=df$fips,
-    z=df$unemp,
-    colorscale="Viridis",
-    zmin=0,
-    zmax=12,
-    marker=list(line=list(
-      width=0)
-    )
-  )
-fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
-fig <- fig %>% layout(
-    title = "2016 US Unemployment by County"
-)
-fig <- fig %>% layout(
-    geo = g
-  )
+
+Animals <- c("giraffes", "orangutans", "monkeys")
+SF_Zoo <- c(20, 14, 23)
+LA_Zoo <- c(12, 18, 29)
+data2 <- data.frame(Animals, SF_Zoo, LA_Zoo)
+
+fig <- plot_ly(data2, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo')
+fig <- fig %>% add_trace(y = ~LA_Zoo, name = 'LA Zoo')
+fig <- fig %>% layout(yaxis = list(title = 'Count'),
+                      title = "Count of Animals by Zoo",
+                      barmode = 'group')
+
 fig
 ```
 
@@ -167,37 +127,32 @@ Column {data-width=350}
 
 ```{r}
 library(plotly)
-library(rjson)
-url <- 'https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json'
-counties <- rjson::fromJSON(file=url)
-url2<- "https://raw.githubusercontent.com/plotly/datasets/master/fips-unemp-16.csv"
-df <- read.csv(url2, colClasses=c(fips="character"))
-g <- list(
-  scope = 'usa',
-  projection = list(type = 'albers usa'),
-  showlakes = TRUE,
-  lakecolor = toRGB('white')
-)
-fig <- plot_ly()
-fig <- fig %>% add_trace(
-    type="choropleth",
-    geojson=counties,
-    locations=df$fips,
-    z=df$unemp,
-    colorscale="Viridis",
-    zmin=0,
-    zmax=12,
-    marker=list(line=list(
-      width=0)
-    )
-  )
-fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
-fig <- fig %>% layout(
-    title = "2016 US Unemployment by County"
-)
-fig <- fig %>% layout(
-    geo = g
-  )
+
+x <- c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012)
+roW <- c(219, 146, 112, 127, 124, 180, 236, 207, 236, 263, 350, 430, 474, 526, 488, 537, 500, 439)
+China <- c(16, 13, 10, 11, 28, 37, 43, 55, 56, 88, 105, 156, 270, 299, 340, 403, 549, 499)
+data3 <- data.frame(x, roW, China)
+
+fig <- plot_ly(data3, x = ~x, y = ~roW, type = 'bar', name = 'Rest of the World',
+        marker = list(color = 'rgb(55, 83, 109)'))
+fig <- fig %>% add_trace(y = ~China, name = 'China', marker = list(color = 'rgb(26, 118, 255)'))
+fig <- fig %>% layout(title = 'US Export of Plastic Scrap',
+         xaxis = list(
+           title = "",
+           tickfont = list(
+             size = 14,
+             color = 'rgb(107, 107, 107)')),
+         yaxis = list(
+           title = 'USD (millions)',
+           titlefont = list(
+             size = 16,
+             color = 'rgb(107, 107, 107)'),
+           tickfont = list(
+             size = 14,
+             color = 'rgb(107, 107, 107)')),
+         legend = list(x = 0, y = 1, bgcolor = 'rgba(255, 255, 255, 0)', bordercolor = 'rgba(255, 255, 255, 0)'),
+         barmode = 'group', bargap = 0.15)
+
 fig
 ```
 
