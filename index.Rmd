@@ -15,9 +15,9 @@ library(flexdashboard)
 #------------------ Parameters ------------------
 # set value board colors
 # https://www.w3.org/TR/css-color-3/#svg-color
-cond_color <- "forestgreen"
-drug_color <- "purple"
-lab_color <- "#1f77b4"
+cond_color <- "firebrick"
+drug_color <- "mediumpurple"
+lab_color <- "forestgreen"
 
 # placeholder for value board counts
 cond_count <- 97325
@@ -55,7 +55,7 @@ Column { data-width=150 }
 ```{r}
 valueBox(value = paste(format(cond_count, big.mark = ","), "", sep = " "), 
          caption = "Conditions", 
-         icon = "fas fa-procedures", 
+         icon = "fas fa-heartbeat", 
          color = cond_color)
 ```
 
@@ -71,7 +71,7 @@ valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "),
 ```{r}
 valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
          caption = "Measurements", 
-         icon = "fas fa-vials", 
+         icon = "fas fa-vial", 
          color = lab_color)
 ```
 
@@ -297,19 +297,93 @@ htmltools::div(
 About {data-icon="fa-address-card"}
 ===================================== 
 
-**The OMOP2OBO Mapping Dashboard**
+**What is OMOP2OBO?**  
+*Motivation*  
+A significant promise of electronic health records (EHRs) lies in the ability to perform large-scale investigations of mechanistic drivers of complex diseases. Despite significant progress in biomarker discovery, this promise remains largely aspirational due to its disconnectedness from biomedical knowledge ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/), [`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)). Linking molecular data to clinical data stored in EHR data will support biologically meaningful analyses, and can be achieved by integrating knowledge about biology and pathophysiology from multiple ontologies. Similar to clinical terminologies, computational ontologies are classification systems that provide detailed representations of a specific domain of knowledge consisting of a set of concepts and logically defined relationships. Unlike most clinical terminologies, ontologies are computable and interoperable, which means they can be logically verified using description logics and easily integrated with other ontologies and non-ontological data including data from basic science and clinical research ([`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)).
 
-The US Wildfire Dashboard provides a live update for the ongoing wildfire in the US. This dashboard is built with R using [Rmarkdown](https://rmarkdown.rstudio.com/) and [flexdashboard](https://rmarkdown.rstudio.com/flexdashboard/) framework, and can easily reproduce by others. The code behind the dashboard available [here](https://github.com/RamiKrispin/uswildfire)
+The usefulness of normalizing (i.e. mapping or annotating) clinical data to ontologies, like those in the Open Biological and Biomedical Ontologies ([OBO](http://www.obofoundry.org/)) Foundry, has been recognized as a fundamental need for the future of deep phenotyping ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/)). Existing work has largely focused on using ontologies to improve phenotyping in specific diseases (i.e. infectious [[`PMID:31160594`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6546783/)] and rare diseases [[`PMID:31231902`](https://pubmed.ncbi.nlm.nih.gov/31231902/)]) and for the enhancement of specific biological and clinical domains (e.g. laboratory tests [[`PMID:31119199`](https://pubmed.ncbi.nlm.nih.gov/31119199/)] and diagnoses [[`PMID:29295235`](https://pubmed.ncbi.nlm.nih.gov/29295235/)]).
+
+Prior work has been largely limited to one-to-one mappings (e.g. mapping a single clinical term to a single ontology concept) and rarely includes external validation. Unfortunately, learning algorithms are not yet able to capture the complex clinical and biological semantics underlying these concepts and their relationships. Until a comprehensive, robust resource that includes mappings between multiple clinical domains and biomedical ontologies is created and validated, automatic generation of inference between patient-level clinical observations and biological knowledge will not be possible. 
+
+*Objective*  
+We have developed `OMOP2OBO`, the first health system-wide integration and alignment between the Observational Health Data Sciences and Informatics' Observational Medical Outcomes Partnership ([OMOP](https://www.ohdsi.org/data-standardization/)) standardized clinical terminologies and eight OBO biomedical ontologies spanning diseases, phenotypes, anatomical entities, cell types, organisms, chemicals, metabolites, hormones, vaccines, and proteins.
+
+<div>
+```{r picture1, echo = F, fig.width=10, fig.height=10}
+knitr::include_graphics("https://user-images.githubusercontent.com/8030363/99837291-972c1e00-2b24-11eb-826b-8141c6b7d1f0.png")
+```
+</div>
+
+To verify that the mappings are both clinically and biologically meaningful, we have performed extensive experiments to verify the [accuracy](https://github.com/callahantiff/OMOP2OBO/wiki/Accuracy), [generalizability](https://github.com/callahantiff/OMOP2OBO/wiki/Generalizability), and [logical consistency](https://github.com/callahantiff/OMOP2OBO/wiki/Consistency) of each released mapping set.  
+
+<br> 
+
+*** 
+
+**Mappings Overview**
+
+The figure below provides an overview of a `OMOP2OBO` mapping to an `OMOP` condition concept. This figure is include to provide detail into the different components that are included in each mapping. Each mapping file contains several tabs. For the Drug ingredient and measurement files, the first tab will contain extended information on the `OMOP` clinical terminologies that were used to create the mappings. The condition mapping data file contains a similar, but less extensive set of data, which is present within each ontology tab. For all files the remaining tabs containing the results from mapping to a specific ontology. For conditions, this symptoms were aligned to the [`Human Phenotype Ontology (HPO)`](https://hpo.jax.org/) and diagnoses were aligned to the [`Mondo Disease Ontology (Mondo)`](http://mondo.monarchinitiative.org/). For drug ingredients, all concepts were aligned to at least one [`Chemical Entities of Biological Interest (ChEBI)`](https://www.ebi.ac.uk/chebi/) concept and the remaining ontologies ([`National Center for Biotechnology Information Taxon Ontology (NCBITaxon)`](https://www.ncbi.nlm.nih.gov/taxonomy), [`Protein Ontology (PR)`](https://proconsortium.org/), and [`vVaccine Ontology (VO)`](https://obofoundry.org/ontology/vo.html)) were mapped by their drug class and/or type (e.g., biologics versus vaccines). For each measurement, all levels of the test result (results above, below, and within a reference range) were mapped, not only those deemed clinically relevant. Results outside of a reference range, but not currently deemed clinically relevant (as advised by the literature or consultation via domain expert), were annotated to the nearest relevant ontology concept ancestor. The interpreted measurement result was mapped to the `HPO`, the measurement substance (body fluids, tissues, and organs via the [`Uber Anatomy Ontology (Uberon)`](https://uberon.github.io/), the entity being measured (chemicals, metabolites, or hormones via `ChEBI`; cell types via the [`Cell Ontology (CL)`](https://obofoundry.org/ontology/cl.html); and proteins and protein complexes via `PR)`, and the species of the measured entities (organism taxonomy via `NCBITaxon`).
+
+An example mapping is show in the figure below.
 
 
-**Mapping Overview**
-
-Add some example here of a mapping
-
-**OMOP2OBO Users and Usecases**  
-
+<div>
+```{r picture2, echo = F, fig.width=10, fig.height=10}
+knitr::include_graphics("https://user-images.githubusercontent.com/8030363/181406541-16b51779-25a7-4b85-b09e-30b8dc71be39.png")
+```
+</div>
 
 <br>
-___
 
-We’d love to hear from you! To get in touch with us, please join or start a new [discussion](https://github.com/callahantiff/OMOP2OBO_Dashboard/discussions), create an [issue](https://github.com/callahantiff/OMOP2OBO_Dashboard/issues) or send us an [email](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=callahantiff@gmail.com) 💌
+***Download Current Mapping Release (`v1.0`)***  
+Additional information on each of the mapping sets is provided through Zenodo. Please be sure to read the information on these pages prior to using the mappings.
+
+- [`Condition Occurrence Mappings`](https://doi.org/10.5281/zenodo.6774363)  
+- [`Drug Exposure Ingredient Mappings`](https://doi.org/10.5281/zenodo.6774401)  
+- [`Measurement Mappings`](https://doi.org/10.5281/zenodo.6774443)  
+
+<br>
+
+***
+
+**OMOP2OBO Users and Usecases**  
+The OMOP2OBO mappings have been used in several interesting usecases. 
+
+*Patient Representation Learning and Rare Disease Subphenotyping*  
+
+- Callahan TJ, Hunter LE, Kahn MG. Leveraging a Neural-Symbolic Representation of Biomedical Knowledge to Improve Pediatric Subphenotyping. 2022. [`Zenodo:5746173`](https://doi.org/10.5281/zenodo.5746173)   
+
+*Understanding and Investigating Long COVID or Post Acute Sequelae of SARS-CoV2 Infection (PASC)*
+
+- Rando HM, Bennett TD, Byrd JB, t al. Challenges in Defining Long COVID: Striking Differences across Literature, Electronic Health Records, and Patient-Reported Information. medRxiv. 2021. [`medRxiv:21253896`](https://doi.org/10.1101/2021.03.20.21253896)    
+
+- Coleman B, Casiraghi E, Callahan TJ, et al. Manifestations Associated with Post Acute Sequelae of SARS-CoV2 Infection (PASC) Predict Diagnosis of New-Onset Psychiatric Disease: Findings from the NIH N3C and RECOVER Studies. medRxiv. 2022. [`medRxiv:22277388`](https://www.medrxiv.org/content/10.1101/2022.07.08.22277388)
+
+- Reese J, Blau H, Bergquist T, et al. Generalizable Long COVID Subtypes: Findings from the NIH N3C and RECOVER Programs. medRxiv. 2022. [`medRxiv:22275398`](https://www.medrxiv.org/content/10.1101/2022.05.24.22275398v1)
+
+- Deer RR, Rock MA, Vasilevsky N, et al. Characterizing Long COVID: Deep Phenotype of a Complex Condition. eBioMedicine. 2021; 74:103722. [`DOI:10.1016/j.ebiom.2021.103722`](https://doi.org/10.1016/j.ebiom.2021.103722)
+
+<br>
+
+***
+
+**The OMOP2OBO Mapping Dashboard**
+
+The OMOP2OBO Dashboard provides up-to-date information on the current `OMOP2OBO` mapping release. This dashboard is built with R using [`Rmarkdown`](https://rmarkdown.rstudio.com/) and the [`flexdashboard`](https://rmarkdown.rstudio.com/flexdashboard/) framework. The code behind the dashboard available [here](https://github.com/callahantiff/OMOP2OBO_Dashboard). 
+
+<br>
+
+***
+
+**Resources and Contact**
+
+*Resources*  
+- [`OMOP2OBO Algorithm`](https://github.com/callahantiff/OMOP2OBO)  
+- [`OMOP2OBO Wiki`](https://github.com/callahantiff/OMOP2OBO/wiki)  
+- [`Zenodo Community`](https://zenodo.org/communities/omop2obo)  
+
+*Contact*  
+We’d love to hear from you! To get in touch with us, please  
+🧵 Join or start a new [discussion](https://github.com/callahantiff/OMOP2OBO_Dashboard/discussions)  
+🎯 Create an [issue](https://github.com/callahantiff/OMOP2OBO_Dashboard/issues)  
+💌 Send us an [email](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=callahantiff@gmail.com) 
