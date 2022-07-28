@@ -4,13 +4,85 @@ output:
   flexdashboard::flex_dashboard:
     storyboard: true
     source_code: embed
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
     social: menu
+    theme: flatly
 ---
 
 ```{r setup, include=FALSE}
+library(crosstalk)
+library(dplyr)
+library(DT)
 library(flexdashboard)
+library(plotly)
+library(rio)
+library(tidyverse)
+
+#------------------ PROCESS MAPPING DATA ------------------
+# download data sets
+# condition data
+core_url = 'https://zenodo.org/record/6929364/files/OMOP2OBO_'
+cond_data_hpo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
+                            sheet='OMOP2OBO_HPO_Mapping_Results')
+cond_data_mondo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
+                              sheet='OMOP2OBO_Mondo_Mapping_Results')
+# combine sheets into one dataframe
+cond_data_hpo <- cbind(ONTOLOGY = "HPO", cond_data_hpo)
+cond_data_mondo <- cbind(ONTOLOGY = "MONDO", cond_data_mondo)
+cond_data <- rbind(cond_data_hpo, cond_data_mondo)
+cond_data <- cbind(cond_data[,1:10], cond_data[,16:20])
+
+c_test = cond_data[,c(1, 2, 12, 14)]
+c_test %>% group_by(c_test$ONTOLOGY, c_test$CONCEPT_MAPPING) %>% summarise(n= n()) %>% spread(c_test$CONCEPT_ID, n, fill=0)
+
+# drug data
+core_url = 'https://zenodo.org/record/6929377/files/OMOP2OBO_'
+drug_data_chebi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
+                              sheet='OMOP2OBO_ChEBI_Mapping_Results')
+drug_data_pro = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
+                            sheet='OMOP2OBO_PRO_Mapping_Results')
+drug_data_vo = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
+                            sheet='OMOP2OBO_VO_Mapping_Results')
+drug_data_ncbi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
+                             sheet='OMOP2OBO_NCBITa_Mapping_Results')
+# combine sheets into one dataframe
+drug_data_chebi <- cbind(ONTOLOGY = "CHEBI", drug_data_chebi)
+drug_data_pro <- cbind(ONTOLOGY = "PRO", drug_data_pro)
+drug_data_vo <- cbind(ONTOLOGY = "VO", drug_data_vo)
+drug_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", drug_data_ncbi)
+drug_data <- rbind(drug_data_chebi, drug_data_pro, drug_data_vo, drug_data_ncbi)
+
+# measurement data
+core_url = 'https://zenodo.org/record/6929384/files/OMOP2OBO_'
+lab_data_hpo = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                           sheet='OMOP2OBO_HPO_Mapping_Results')
+lab_data_uberon = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                              sheet='OMOP2OBO_UBERON_Mapping_Results')
+lab_data_chebi = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                             sheet='OMOP2OBO_ChEBI_Mapping_Results')
+lab_data_cl = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                          sheet='OMOP2OBO_CL_Mapping_Results')
+lab_data_pro = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                           sheet='OMOP2OBO_PRO_Mapping_Results')
+lab_data_ncbi = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
+                            sheet='OMOP2OBO_NCBITa_Mapping_Results')
+# combine sheets into one dataframe
+lab_data_hpo <- cbind(ONTOLOGY = "HPO", lab_data_hpo)
+lab_data_uberon <- cbind(ONTOLOGY = "UBERON", lab_data_uberon)
+lab_data_chebi <- cbind(ONTOLOGY = "CHEBI", lab_data_chebi)
+lab_data_cl <- cbind(ONTOLOGY = "CL", lab_data_cl)
+lab_data_pro <- cbind(ONTOLOGY = "PRO", lab_data_pro)
+lab_data_ncbi <- cbind(ONTOLOGY = "NCBITAXON", lab_data_ncbi)
+lab_data <- rbind(lab_data_hpo, lab_data_uberon, lab_data_chebi, lab_data_cl,
+                  lab_data_pro, lab_data_ncbi)
+
+# # get value board counts
+cond_count <- n_distinct(cond_data$CONCEPT_ID)
+drug_count<- n_distinct(drug_data$CONCEPT_ID)
+lab_count <- n_distinct(lab_data$CONCEPT_ID)
+# cond_count <- 109584
+# drug_count <- 10254
 
 #------------------ Parameters ------------------
 # set value board colors
@@ -18,11 +90,6 @@ library(flexdashboard)
 cond_color <- "firebrick"
 drug_color <- "mediumpurple"
 lab_color <- "forestgreen"
-
-# placeholder for value board counts
-cond_count <- 97325
-drug_count<- 10245
-lab_count <- 4558
 
 # timestamp for tables
 run_time <- format(Sys.time(), "%a %b %d %X %Y")
@@ -45,13 +112,23 @@ rownames(data) <- NULL
 ```
 
 
+
+<!-- ============================ SUMMARY PAGE ============================ -->
 Mapping Summary {data-icon="fa-map"}
 ===================================== 
 
-Column { data-width=150 }
+Column { data-height=150 }
 -----------------------------------------------------------------------
 
 ### conditions {.value-box}
+```{r}
+valueBox(value = paste(format(cond_count, big.mark = ","), "", sep = " "), 
+         caption = "Conditions", 
+         icon = "fas fa-heartbeat", 
+         color = cond_color)
+```
+
+### conditions {.value-box .mobile}
 ```{r}
 valueBox(value = paste(format(cond_count, big.mark = ","), "", sep = " "), 
          caption = "Conditions", 
@@ -67,6 +144,15 @@ valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "),
          color = drug_color)
 ```
 
+### drugs {.value-box .mobile}
+```{r}
+valueBox(value = paste(format(drug_count, big.mark = ","), "", sep = " "), 
+         caption = "Drug Ingredients", 
+         icon = "fas fa-pills", 
+         color = drug_color)
+```
+
+
 ### measurements {.value-box}
 ```{r}
 valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
@@ -75,16 +161,20 @@ valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "),
          color = lab_color)
 ```
 
+### measurements {.value-box .mobile}
+```{r}
+valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "), 
+         caption = "Measurements", 
+         icon = "fas fa-vial", 
+         color = lab_color)
+```
 
-Column {data-width=350, data-height=350 }
+Row {data-width=350, data-height=350 }
 -----------------------------------------------------------------------
 
 ### Condition Mappings
 
 ```{r}
-library(plotly)
-library(dplyr)
-
 fig <- ggplot2::diamonds
 fig <- fig %>% count(cut, clarity)
 fig <- fig %>% plot_ly(x = ~cut, y = ~n, color = ~clarity)
@@ -96,14 +186,27 @@ fig <- fig %>% layout(yaxis = list(title = 'Count'),
 fig
 ```
 
+### Condition Mapping Summary
 
-Column {data-width=350}
+```{r table1}
+
+htmltools::div(
+  # table,
+  class = "condition-mapping-data",
+  htmltools::div(class = "condition-mapping-data-footer",
+                 htmltools::div( class = "condition-mapping-data-title",
+                                "Source: OMOP2OBO v1.0 - OMOP v5.3"))
+)
+  
+```
+
+
+Row {data-width=350, data-height=350 }
 -----------------------------------------------------------------------
 
 ### Drug Ingredient Mappings
 
 ```{r}
-library(plotly)
 
 Animals <- c("giraffes", "orangutans", "monkeys")
 SF_Zoo <- c(20, 14, 23)
@@ -119,14 +222,26 @@ fig <- fig %>% layout(yaxis = list(title = 'Count'),
 fig
 ```
 
+### Drug Ingredient Mapping Summary
 
-Column {data-width=350}
+```{r table2}
+
+htmltools::div(
+  # table,
+  class = "drug-mapping-data",
+  htmltools::div(class = "drug-mapping-data-footer",
+                 htmltools::div( class = "drug-mapping-data-title",
+                                "Source: OMOP2OBO v1.0 - OMOP v5.3"))
+)
+```
+
+
+Row {data-width=350, data-height=350 }
 -----------------------------------------------------------------------
 
 ### Measurement Mappings
 
 ```{r}
-library(plotly)
 
 x <- c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012)
 roW <- c(219, 146, 112, 127, 124, 180, 236, 207, 236, 263, 350, 430, 474, 526, 488, 537, 500, 439)
@@ -156,157 +271,111 @@ fig <- fig %>% layout(title = 'US Export of Plastic Scrap',
 fig
 ```
 
+### Measurement Mapping Summary
+
+```{r table3}
+
+htmltools::div(
+  # table,
+  class = "lab-mapping-data",
+  htmltools::div(class = "lab-mapping-data-footer",
+                 htmltools::div( class = "lab-mapping-data-title",
+                                "Source: OMOP2OBO v1.0 - OMOP v5.3"))
+)
+```
 
 
+
+<!-- =======================+====== DATA PAGE =================+============ -->
 Data {data-icon="fa-table"}
 ===================================== 
 
+Row {.tabset .tabset-fade}
+-------------------------------------
+
 ### Condition Occurrence Mappings
 
-```{r table1}
+```{r table4}
+# declare factors
+cond_data$ONTOLOGY <- as.factor(cond_data$ONTOLOGY)
+cond_data$CONCEPT_ID <- as.factor(cond_data$CONCEPT_ID)
+cond_data$CONCEPT_CODE <- as.factor(cond_data$CONCEPT_CODE)
+cond_data$MAPPING_CATEGORY <- as.factor(cond_data$MAPPING_CATEGORY)
 
-table <- reactable::reactable(
-  data = data,
-  pagination = FALSE,
-  highlight = TRUE,
-  height = 1200,
-  defaultSorted = "States",
-  sortable = TRUE,
-  borderless = TRUE,
-  defaultPageSize = nrow(data),
-  columns = list(
-    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
-    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Assault), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "gold")}),
-    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Rape), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "orange")}),
-    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Murder), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "red")})
-    ))
+# sort and reduce data set for app
+cond_data <- cond_data[order(cond_data$CONCEPT_ID),]
+cond_data_subset <- cond_data[1:10000, ]
 
-htmltools::div(
-  class = "condition-mapping-data",
-  htmltools::div(class = "condition-mapping-data-header",
-                 htmltools::div(
-                   class = "condition-mapping-data-title",
-                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Condition Occurrence Mappings"),
-                 paste("Last Update: ", run_time, " EST", sep = "")),
-  table
-)
+# make table
+datatable(cond_data_subset, filter = "top", options = list(
+  pageLength = 10,
+  lengthMenu = c(10, 25, 50, 100, 500),
+  searchHighlight = TRUE))
 ```
 
 
 ### Drug Ingredient Mappings
 
-```{r table2}
+```{r table5}
+# declare factors
+drug_data$ONTOLOGY <- as.factor(drug_data$ONTOLOGY)
+drug_data$CONCEPT_ID <- as.factor(drug_data$CONCEPT_ID)
+drug_data$CONCEPT_CODE <- as.factor(drug_data$CONCEPT_CODE)
+drug_data$MAPPING_CATEGORY <- as.factor(drug_data$MAPPING_CATEGORY)
 
-table <- reactable::reactable(
-  data = data,
-  pagination = FALSE,
-  highlight = TRUE,
-  height = 1200,
-  defaultSorted = "States",
-  sortable = TRUE,
-  borderless = TRUE,
-  defaultPageSize = nrow(data),
-  columns = list(
-    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
-    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Assault), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "gold")}),
-    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Rape), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "orange")}),
-    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Murder), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "red")})
-    ))
+# sort and reduce data set for app
+drug_data <- drug_data[order(drug_data$CONCEPT_ID),]
+drug_data_subset <- drug_data[1:10000, ]
 
-htmltools::div(
-  class = "drug-mapping-data",
-  htmltools::div(class = "drug-mapping-data-header",
-                 htmltools::div(
-                   class = "drug-mapping-data-title",
-                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Drug Exposure Ingredient Mappings"),
-                 paste("Last Update: ", run_time, " EST", sep = "")),
-  table
-)
+# make table
+datatable(drug_data_subset, filter = "top", options = list(
+  pageLength = 10,
+  lengthMenu = c(10, 25, 50, 100, 500),
+  searchHighlight = TRUE))
 ```
 
 
 ### Measurement Mappings
 
-```{r table3}
+```{r table6}
+# declare factors
+lab_data$ONTOLOGY <- as.factor(lab_data$ONTOLOGY)
+lab_data$CONCEPT_ID <- as.factor(lab_data$CONCEPT_ID)
+lab_data$CONCEPT_CODE <- as.factor(lab_data$CONCEPT_CODE)
+lab_data$SCALE <- as.factor(lab_data$SCALE)
+lab_data$RESULT_TYPE <- as.factor(lab_data$RESULT_TYPE)
+lab_data$MAPPING_CATEGORY <- as.factor(lab_data$MAPPING_CATEGORY)
 
-table <- reactable::reactable(
-  data = data,
-  pagination = FALSE,
-  highlight = TRUE,
-  height = 1200,
-  defaultSorted = "States",
-  sortable = TRUE,
-  borderless = TRUE,
-  defaultPageSize = nrow(data),
-  columns = list(
-    States = reactable::colDef(name = "States", sortable = TRUE, defaultSortOrder = "asc", align = "left"),
-    Assault = reactable::colDef(name = "Assaults", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Assault), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "gold")}),
-    Rape = reactable::colDef(name = "Rapes", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Rape), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "orange")}),
-    Murder = reactable::colDef(name = "Murders", sortable = TRUE, align = "left",
-                                cell = function(value) {
-                                width <- paste0(value * 100 / max(data$Murder), "%")
-                                value <- format(value, big.mark = ",")
-                                bar_chart(value, width = width, fill = "red")})
-    ))
-
-htmltools::div(
-  class = "lab-mapping-data",
-  htmltools::div(class = "lab-mapping-data-header",
-                 htmltools::div(
-                   class = "lab-mapping-data-title",
-                   "Source: OMOP2OBO v1.0 - OMOP v5.3 Measurement Mappings"),
-                 paste("Last Update: ", run_time, " EST", sep = "")),
-  table
-)
+# make table
+datatable(lab_data, filter = "top", options = list(
+  pageLength = 10,
+  lengthMenu = c(10, 25, 50, 100, 500),
+  searchHighlight = TRUE))
 ```
 
 
 
+<!-- ============================= ABOUT PAGE ============================= -->
 About {data-icon="fa-address-card"}
 ===================================== 
 
-**What is OMOP2OBO?**  
+-----------------------------------------------------------------------
+
+🗺 **What is OMOP2OBO?** 
+
+-----------------------------------------------------------------------
+
 *Motivation*  
-A significant promise of electronic health records (EHRs) lies in the ability to perform large-scale investigations of mechanistic drivers of complex diseases. Despite significant progress in biomarker discovery, this promise remains largely aspirational due to its disconnectedness from biomedical knowledge ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/), [`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)). Linking molecular data to clinical data stored in EHR data will support biologically meaningful analyses, and can be achieved by integrating knowledge about biology and pathophysiology from multiple ontologies. Similar to clinical terminologies, computational ontologies are classification systems that provide detailed representations of a specific domain of knowledge consisting of a set of concepts and logically defined relationships. Unlike most clinical terminologies, ontologies are computable and interoperable, which means they can be logically verified using description logics and easily integrated with other ontologies and non-ontological data including data from basic science and clinical research ([`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)).
 
-The usefulness of normalizing (i.e. mapping or annotating) clinical data to ontologies, like those in the Open Biological and Biomedical Ontologies ([OBO](http://www.obofoundry.org/)) Foundry, has been recognized as a fundamental need for the future of deep phenotyping ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/)). Existing work has largely focused on using ontologies to improve phenotyping in specific diseases (i.e. infectious [[`PMID:31160594`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6546783/)] and rare diseases [[`PMID:31231902`](https://pubmed.ncbi.nlm.nih.gov/31231902/)]) and for the enhancement of specific biological and clinical domains (e.g. laboratory tests [[`PMID:31119199`](https://pubmed.ncbi.nlm.nih.gov/31119199/)] and diagnoses [[`PMID:29295235`](https://pubmed.ncbi.nlm.nih.gov/29295235/)]).
-
-Prior work has been largely limited to one-to-one mappings (e.g. mapping a single clinical term to a single ontology concept) and rarely includes external validation. Unfortunately, learning algorithms are not yet able to capture the complex clinical and biological semantics underlying these concepts and their relationships. Until a comprehensive, robust resource that includes mappings between multiple clinical domains and biomedical ontologies is created and validated, automatic generation of inference between patient-level clinical observations and biological knowledge will not be possible. 
+- A significant promise of electronic health records (EHRs) lies in the ability to perform large-scale investigations of mechanistic drivers of complex diseases. Despite significant progress in biomarker discovery, this promise remains largely aspirational ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/), [`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)). 
+- Linking molecular data to clinical data stored in EHR data will support biologically meaningful analyses, and can be achieved by integrating knowledge about biology and pathophysiology from multiple ontologies.  
+- Similar to clinical terminologies, computational ontologies are classification systems that provide detailed representations of a specific domain of knowledge consisting of a set of concepts and logically defined relationships. Unlike most clinical terminologies, ontologies are computable and interoperable, which means they can be logically verified using description logics and easily integrated with other ontologies and non-ontological data including data from basic science and clinical research ([`PMID:30304648`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6503847/)).
+- The usefulness of normalizing (i.e. mapping or annotating) clinical data to ontologies, like those in the Open Biological and Biomedical Ontologies ([OBO](http://www.obofoundry.org/)) Foundry, has been recognized as a fundamental need for the future of deep phenotyping ([`PMID:32335224`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7179504/)).  
+- Existing work has largely been limited to using ontologies to improve phenotyping in specific diseases (i.e. infectious [[`PMID:31160594`](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6546783/)] and rare diseases [[`PMID:31231902`](https://pubmed.ncbi.nlm.nih.gov/31231902/)]) and for the enhancement of specific biological and clinical domains (e.g. laboratory tests [[`PMID:31119199`](https://pubmed.ncbi.nlm.nih.gov/31119199/)] and diagnoses [[`PMID:29295235`](https://pubmed.ncbi.nlm.nih.gov/29295235/)]).  
+- Unfortunately, learning algorithms are not yet able to capture the complex clinical and biological semantics underlying these concepts and their relationships. Until a comprehensive, robust resource that includes mappings between multiple clinical domains and biomedical ontologies is created and validated, automatic generation of inference between patient-level clinical observations and biological knowledge will not be possible. 
 
 *Objective*  
-We have developed `OMOP2OBO`, the first health system-wide integration and alignment between the Observational Health Data Sciences and Informatics' Observational Medical Outcomes Partnership ([OMOP](https://www.ohdsi.org/data-standardization/)) standardized clinical terminologies and eight OBO biomedical ontologies spanning diseases, phenotypes, anatomical entities, cell types, organisms, chemicals, metabolites, hormones, vaccines, and proteins.
+We developed `OMOP2OBO`, the first health system-wide integration and alignment between the Observational Health Data Sciences and Informatics' Observational Medical Outcomes Partnership ([OMOP](https://www.ohdsi.org/data-standardization/)) standardized clinical terminologies and eight OBO biomedical ontologies spanning diseases, phenotypes, anatomical entities, cell types, organisms, chemicals, metabolites, hormones, vaccines, and proteins.
 
 <div>
 ```{r picture1, echo = F, fig.width=10, fig.height=10}
@@ -314,18 +383,22 @@ knitr::include_graphics("https://user-images.githubusercontent.com/8030363/99837
 ```
 </div>
 
-To verify that the mappings are both clinically and biologically meaningful, we have performed extensive experiments to verify the [accuracy](https://github.com/callahantiff/OMOP2OBO/wiki/Accuracy), [generalizability](https://github.com/callahantiff/OMOP2OBO/wiki/Generalizability), and [logical consistency](https://github.com/callahantiff/OMOP2OBO/wiki/Consistency) of each released mapping set.  
+<br><br> 
 
-<br> 
+-----------------------------------------------------------------------
 
-*** 
+🤔 **Mappings Overview**
 
-**Mappings Overview**
+-----------------------------------------------------------------------
 
-The figure below provides an overview of a `OMOP2OBO` mapping to an `OMOP` condition concept. This figure is include to provide detail into the different components that are included in each mapping. Each mapping file contains several tabs. For the Drug ingredient and measurement files, the first tab will contain extended information on the `OMOP` clinical terminologies that were used to create the mappings. The condition mapping data file contains a similar, but less extensive set of data, which is present within each ontology tab. For all files the remaining tabs containing the results from mapping to a specific ontology. For conditions, this symptoms were aligned to the [`Human Phenotype Ontology (HPO)`](https://hpo.jax.org/) and diagnoses were aligned to the [`Mondo Disease Ontology (Mondo)`](http://mondo.monarchinitiative.org/). For drug ingredients, all concepts were aligned to at least one [`Chemical Entities of Biological Interest (ChEBI)`](https://www.ebi.ac.uk/chebi/) concept and the remaining ontologies ([`National Center for Biotechnology Information Taxon Ontology (NCBITaxon)`](https://www.ncbi.nlm.nih.gov/taxonomy), [`Protein Ontology (PR)`](https://proconsortium.org/), and [`vVaccine Ontology (VO)`](https://obofoundry.org/ontology/vo.html)) were mapped by their drug class and/or type (e.g., biologics versus vaccines). For each measurement, all levels of the test result (results above, below, and within a reference range) were mapped, not only those deemed clinically relevant. Results outside of a reference range, but not currently deemed clinically relevant (as advised by the literature or consultation via domain expert), were annotated to the nearest relevant ontology concept ancestor. The interpreted measurement result was mapped to the `HPO`, the measurement substance (body fluids, tissues, and organs via the [`Uber Anatomy Ontology (Uberon)`](https://uberon.github.io/), the entity being measured (chemicals, metabolites, or hormones via `ChEBI`; cell types via the [`Cell Ontology (CL)`](https://obofoundry.org/ontology/cl.html); and proteins and protein complexes via `PR)`, and the species of the measured entities (organism taxonomy via `NCBITaxon`).
+Each mapping file contains several tabs:  
 
-An example mapping is show in the figure below.
+- For the Drug ingredient and measurement files, the first tab will contain extended information on the `OMOP` clinical terminologies that were used to create the mappings.   
+- The condition mapping data file contains a similar, but less extensive set of data, which is present within each ontology tab. For all files the remaining tabs containing the results from mapping to a specific ontology. For conditions, symptoms were aligned to the [`Human Phenotype Ontology (HPO)`](https://hpo.jax.org/) and diagnoses were aligned to the [`Mondo Disease Ontology (Mondo)`](http://mondo.monarchinitiative.org/).  
+- For drug ingredients, all concepts were aligned to at least one [`Chemical Entities of Biological Interest (ChEBI)`](https://www.ebi.ac.uk/chebi/) concept and the remaining ontologies ([`National Center for Biotechnology Information Taxon Ontology (NCBITaxon)`](https://www.ncbi.nlm.nih.gov/taxonomy), [`Protein Ontology (PR)`](https://proconsortium.org/), and [`Vaccine Ontology (VO)`](https://obofoundry.org/ontology/vo.html)) were mapped by their drug class and/or type (e.g., biologics versus vaccines).  
+- For each measurement, all levels of the test result (results above, below, and within a reference range) were mapped, not only those deemed clinically relevant. Results outside of a reference range, but not currently deemed clinically relevant (as advised by the literature or consultation via domain expert), were annotated to the nearest relevant ontology concept ancestor. The interpreted measurement result was mapped to the `HPO`, the measurement substance (body fluids, tissues, and organs via the [`Uber Anatomy Ontology (Uberon)`](https://uberon.github.io/), the entity being measured (chemicals, metabolites, or hormones via `ChEBI`; cell types via the [`Cell Ontology (CL)`](https://obofoundry.org/ontology/cl.html); and proteins and protein complexes via `PR)`, and the species of the measured entities (organism taxonomy via `NCBITaxon`).  
 
+The figure below provides an example of a `OMOP2OBO` mapping to an `OMOP` condition concept. This figure is include to provide detail into the different components that are included in each mapping.  
 
 <div>
 ```{r picture2, echo = F, fig.width=10, fig.height=10}
@@ -333,20 +406,20 @@ knitr::include_graphics("https://user-images.githubusercontent.com/8030363/18140
 ```
 </div>
 
+<br><br>
+
+-----------------------------------------------------------------------
+
+✅ **Mapping Verification and Validation** 
+
+-----------------------------------------------------------------------
+
+To verify that the mappings are both clinically and biologically meaningful, we have performed extensive experiments to verify the [accuracy](https://github.com/callahantiff/OMOP2OBO/wiki/Accuracy), [generalizability](https://github.com/callahantiff/OMOP2OBO/wiki/Generalizability), and [logical consistency](https://github.com/callahantiff/OMOP2OBO/wiki/Consistency) of each released mapping set. Please note that the consistency experiments are still in progressand have only been applied to the `HPO` and `MONDO` mappings at this time.
+
 <br>
 
-***Download Current Mapping Release (`v1.0`)***  
-Additional information on each of the mapping sets is provided through Zenodo. Please be sure to read the information on these pages prior to using the mappings.
+***OMOP2OBO Users and Usecases***  
 
-- [`Condition Occurrence Mappings`](https://doi.org/10.5281/zenodo.6774363)  
-- [`Drug Exposure Ingredient Mappings`](https://doi.org/10.5281/zenodo.6774401)  
-- [`Measurement Mappings`](https://doi.org/10.5281/zenodo.6774443)  
-
-<br>
-
-***
-
-**OMOP2OBO Users and Usecases**  
 The OMOP2OBO mappings have been used in several interesting usecases. 
 
 *Patient Representation Learning and Rare Disease Subphenotyping*  
@@ -363,26 +436,48 @@ The OMOP2OBO mappings have been used in several interesting usecases.
 
 - Deer RR, Rock MA, Vasilevsky N, et al. Characterizing Long COVID: Deep Phenotype of a Complex Condition. eBioMedicine. 2021; 74:103722. [`DOI:10.1016/j.ebiom.2021.103722`](https://doi.org/10.1016/j.ebiom.2021.103722)
 
-<br>
+<br><br>
 
-***
+-----------------------------------------------------------------------
 
-**The OMOP2OBO Mapping Dashboard**
+📥 **Download Current Mapping Release (`v1.0`)**  
+
+-----------------------------------------------------------------------
+
+Additional information on each of the mapping sets is provided through Zenodo. Please be sure to read the information on these pages prior to using the mappings.
+
+- [`Condition Occurrence Mappings`](https://doi.org/10.5281/zenodo.6774363)  
+- [`Drug Exposure Ingredient Mappings`](https://doi.org/10.5281/zenodo.6774401)  
+- [`Measurement Mappings`](https://doi.org/10.5281/zenodo.6774443)  
+
+<br><br>
+
+-----------------------------------------------------------------------
+
+✨ **The OMOP2OBO Mapping Dashboard** 
+
+-----------------------------------------------------------------------
 
 The OMOP2OBO Dashboard provides up-to-date information on the current `OMOP2OBO` mapping release. This dashboard is built with R using [`Rmarkdown`](https://rmarkdown.rstudio.com/) and the [`flexdashboard`](https://rmarkdown.rstudio.com/flexdashboard/) framework. The code behind the dashboard available [here](https://github.com/callahantiff/OMOP2OBO_Dashboard). 
 
-<br>
+<br><br>
 
-***
+-----------------------------------------------------------------------
 
-**Resources and Contact**
+💻 **Resources and Contact** 
 
-*Resources*  
+-----------------------------------------------------------------------
+
+<!-- ***Manuscript*** -->
+<!-- <PLACEHOLDER FOR MANUSCRIPT OR PREPRINT> -->
+
+
+***Resources***  
 - [`OMOP2OBO Algorithm`](https://github.com/callahantiff/OMOP2OBO)  
 - [`OMOP2OBO Wiki`](https://github.com/callahantiff/OMOP2OBO/wiki)  
 - [`Zenodo Community`](https://zenodo.org/communities/omop2obo)  
 
-*Contact*  
+***Contact***  
 We’d love to hear from you! To get in touch with us, please  
 🧵 Join or start a new [discussion](https://github.com/callahantiff/OMOP2OBO_Dashboard/discussions)  
 🎯 Create an [issue](https://github.com/callahantiff/OMOP2OBO_Dashboard/issues)  
