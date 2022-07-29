@@ -7,6 +7,8 @@ The OMOP2OBO Dashboard provides updated statistics, data, and information about 
 
 <img src="figures/data.png" width="100%" />
 
+<img src="figures/about.png" width="100%" />
+
 <br>
 
 **OMOP2OBO**  
