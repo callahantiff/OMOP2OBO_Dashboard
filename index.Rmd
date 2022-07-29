@@ -5,7 +5,7 @@ output:
     storyboard: true
     source_code: embed
     orientation: rows
-    vertical_layout: fill
+    vertical_layout: scroll
     social: menu
     theme: flatly
 ---
@@ -16,6 +16,7 @@ library(dplyr)
 library(DT)
 library(flexdashboard)
 library(plotly)
+library(reshape)
 library(rio)
 library(tidyverse)
 
@@ -32,9 +33,6 @@ cond_data_hpo <- cbind(ONTOLOGY = "HPO", cond_data_hpo)
 cond_data_mondo <- cbind(ONTOLOGY = "MONDO", cond_data_mondo)
 cond_data <- rbind(cond_data_hpo, cond_data_mondo)
 cond_data <- cbind(cond_data[,1:10], cond_data[,16:20])
-
-c_test = cond_data[,c(1, 2, 12, 14)]
-c_test %>% group_by(c_test$ONTOLOGY, c_test$CONCEPT_MAPPING) %>% summarise(n= n()) %>% spread(c_test$CONCEPT_ID, n, fill=0)
 
 # drug data
 core_url = 'https://zenodo.org/record/6929377/files/OMOP2OBO_'
@@ -73,7 +71,7 @@ lab_data_uberon <- cbind(ONTOLOGY = "UBERON", lab_data_uberon)
 lab_data_chebi <- cbind(ONTOLOGY = "CHEBI", lab_data_chebi)
 lab_data_cl <- cbind(ONTOLOGY = "CL", lab_data_cl)
 lab_data_pro <- cbind(ONTOLOGY = "PRO", lab_data_pro)
-lab_data_ncbi <- cbind(ONTOLOGY = "NCBITAXON", lab_data_ncbi)
+lab_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", lab_data_ncbi)
 lab_data <- rbind(lab_data_hpo, lab_data_uberon, lab_data_chebi, lab_data_cl,
                   lab_data_pro, lab_data_ncbi)
 
@@ -81,8 +79,7 @@ lab_data <- rbind(lab_data_hpo, lab_data_uberon, lab_data_chebi, lab_data_cl,
 cond_count <- n_distinct(cond_data$CONCEPT_ID)
 drug_count<- n_distinct(drug_data$CONCEPT_ID)
 lab_count <- n_distinct(lab_data$CONCEPT_ID)
-# cond_count <- 109584
-# drug_count <- 10254
+
 
 #------------------ Parameters ------------------
 # set value board colors
@@ -101,23 +98,22 @@ bar_chart <- function(label, width = "100%", height = "14px", fill = "#00bfc4", 
   htmltools::div(style = list(display = "flex", alignItems = "center"), label, chart)
 }
 
-
-#------------------ TABLES ------------------
-# create fake table data
-state_names <- rownames(USArrests)
-data <- USArrests 
-data$States <- rownames(data)
-rownames(data) <- NULL
-
+# variables to use when plotting
+aca = "Automatic Constructor - Ancestor"
+acc = "Automatic Constructor - Concept"
+aea = "Automatic Exact - Ancestor"
+aec = "Automatic Exact - Concept"
+m = "Manual"
+mc = "Manual Constructor"
+cs = "Concept Similarity"
+un = "Unmapped"
 ```
-
-
 
 <!-- ============================ SUMMARY PAGE ============================ -->
 Mapping Summary {data-icon="fa-map"}
 ===================================== 
 
-Column { data-height=150 }
+Column
 -----------------------------------------------------------------------
 
 ### conditions {.value-box}
@@ -169,27 +165,70 @@ valueBox(value = paste(format(lab_count, big.mark = ","), "", sep = " "),
          color = lab_color)
 ```
 
-Row {data-width=350, data-height=350 }
+Row  {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Condition Mappings
 
 ```{r}
-fig <- ggplot2::diamonds
-fig <- fig %>% count(cut, clarity)
-fig <- fig %>% plot_ly(x = ~cut, y = ~n, color = ~clarity)
-fig <- fig %>% layout(yaxis = list(title = 'Count'),
-                      xaxis = list(title = 'Cut'),
-                      title = "Count of Diamonds by Cut and Clarity"
-)
+# get concept mapping counts by ontology and mapping category
+c_test = cond_data[,c(1, 2, 14)]
+c_test$ONTOLOGY <- as.factor(c_test$ONTOLOGY)
+c_out <- c_test %>%
+  group_by(c_test$ONTOLOGY, c_test$MAPPING_CATEGORY) %>%
+  tally(sort = T) %>%
+  ungroup()
 
+# rename columns and rehape data so counts organize din rows by ontology 
+names(c_out)[names(c_out) == "c_test$ONTOLOGY"] <- "ONTOLOGY"
+names(c_out)[names(c_out) == "c_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
+names(c_out)[names(c_out) == "n"] <- "COUNT"
+c_out_plot <- cast(c_out, ONTOLOGY ~ MAPPING_CATEGORY)
+
+# rename casted df and convert n/a values to 0
+names(c_out_plot)[names(c_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
+names(c_out_plot)<-str_replace_all(names(c_out_plot), c(" " = "." , "-" = "." ))
+c_out_plot[is.na(c_out_plot)] <- 0
+
+# create plot data
+onts <- c_out_plot$ONTOLOGY
+aca_df <- c_out_plot$Automatic.Constructor...Ancestor
+acc_df <- c_out_plot$Automatic.Constructor...Concept
+aea_df <- c_out_plot$Automatic.Exact...Ancestor
+aec_df <- c_out_plot$Automatic.Exact...Concept
+m_df <- c_out_plot$Manual
+mc_df <- c_out_plot$Manual.Constructor
+cs_df <- c_out_plot$Concept.Similarity
+data1 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
+
+# create plot
+fig <- plot_ly(data1, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
+fig <- fig %>% add_trace(y = ~acc_df, name = acc)
+fig <- fig %>% add_trace(y = ~aea_df, name = aea)
+fig <- fig %>% add_trace(y = ~aec_df, name = aec)
+fig <- fig %>% add_trace(y = ~m_df, name = m)
+fig <- fig %>% add_trace(y = ~mc_df, name = mc)
+fig <- fig %>% add_trace(y = ~cs_df, name = cs)
+fig <- fig %>% layout(yaxis = list(title = 'Concept Count'),
+                      xaxis = list(title = 'Ontology'),
+                      title = "Mapped Conditions Count by Mapping Category and Ontology",
+                      barmode = 'group')
 fig
 ```
 
 ### Condition Mapping Summary
 
 ```{r table1}
+# get concept mapping counts by ontology and mapping category
+c_out_table <- cast(c_out, MAPPING_CATEGORY ~ ONTOLOGY)
 
+# create table
+# declare factors and make table
+c_out_table$MAPPING_CATEGORY <- as.factor(c_out_table$MAPPING_CATEGORY)
+c_out_table[is.na(c_out_table)] <- 0
+datatable(c_out_table, filter = "top")
+
+# add table footer
 htmltools::div(
   # table,
   class = "condition-mapping-data",
@@ -201,31 +240,72 @@ htmltools::div(
 ```
 
 
-Row {data-width=350, data-height=350 }
+Row  {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Drug Ingredient Mappings
 
 ```{r}
+# get concept mapping counts by ontology and mapping category
+d_test = drug_data[,c(1, 2, 8)]
+d_test$ONTOLOGY <- as.factor(d_test$ONTOLOGY)
+d_out <- d_test %>%
+  group_by(d_test$ONTOLOGY, d_test$MAPPING_CATEGORY) %>%
+  tally(sort = T) %>%
+  ungroup()
 
-Animals <- c("giraffes", "orangutans", "monkeys")
-SF_Zoo <- c(20, 14, 23)
-LA_Zoo <- c(12, 18, 29)
-data2 <- data.frame(Animals, SF_Zoo, LA_Zoo)
+# rename columns and rehape data so counts organize din rows by ontology 
+names(d_out)[names(d_out) == "d_test$ONTOLOGY"] <- "ONTOLOGY"
+names(d_out)[names(d_out) == "d_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
+names(d_out)[names(d_out) == "n"] <- "COUNT"
+d_out_plot <- cast(d_out, ONTOLOGY ~ MAPPING_CATEGORY)
 
-fig <- plot_ly(data2, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo')
-fig <- fig %>% add_trace(y = ~LA_Zoo, name = 'LA Zoo')
-fig <- fig %>% layout(yaxis = list(title = 'Count'),
-                      title = "Count of Animals by Zoo",
+# rename casted df and convert n/a values to 0
+names(d_out_plot)[names(d_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
+names(d_out_plot)<-str_replace_all(names(d_out_plot), c(" " = "." , "-" = "." ))
+d_out_plot[is.na(d_out_plot)] <- 0
+
+# create plot data
+onts <- d_out_plot$ONTOLOGY
+aca_df <- d_out_plot$Automatic.Constructor...Ancestor
+acc_df <- d_out_plot$Automatic.Constructor...Concept
+aea_df <- d_out_plot$Automatic.Exact...Ancestor
+aec_df <- d_out_plot$Automatic.Exact...Concept
+m_df <- d_out_plot$Manual
+mc_df <- d_out_plot$Manual.Constructor
+cs_df <- d_out_plot$Concept.Similarity
+data2 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
+
+# create plot
+fig <- plot_ly(data2, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
+fig <- fig %>% add_trace(y = ~acc_df, name = acc)
+fig <- fig %>% add_trace(y = ~aea_df, name = aea)
+fig <- fig %>% add_trace(y = ~aec_df, name = aec)
+fig <- fig %>% add_trace(y = ~m_df, name = m)
+fig <- fig %>% add_trace(y = ~mc_df, name = mc)
+fig <- fig %>% add_trace(y = ~cs_df, name = cs)
+fig <- fig %>% layout(yaxis = list(title = 'Concept Count'),
+                      xaxis = list(title = 'Ontology'),
+                      title = "Mapped Drug Ingredients Count by Mapping Category and Ontology",
                       barmode = 'group')
-
 fig
 ```
 
 ### Drug Ingredient Mapping Summary
 
 ```{r table2}
+# get concept mapping counts by ontology and mapping category
+d_out_table <- cast(d_out, MAPPING_CATEGORY ~ ONTOLOGY)
 
+# create table
+# declare factors, reorder columns, and make table
+d_out_table$MAPPING_CATEGORY <- as.factor(d_out_table$MAPPING_CATEGORY)
+vec <- c("MAPPING_CATEGORY", "CHEBI", "PRO", "VO", "NCBITaxon")
+d_out_table <- d_out_table[vec]
+d_out_table[is.na(d_out_table)] <- 0
+datatable(d_out_table, filter = "top")
+
+# add table footer
 htmltools::div(
   # table,
   class = "drug-mapping-data",
@@ -236,45 +316,71 @@ htmltools::div(
 ```
 
 
-Row {data-width=350, data-height=350 }
+Row {.tabset .tabset-fade}
 -----------------------------------------------------------------------
 
 ### Measurement Mappings
 
 ```{r}
+l_test = lab_data[,c(1, 2, 10)]
+l_test$ONTOLOGY <- as.factor(l_test$ONTOLOGY)
+l_out <- l_test %>%
+  group_by(l_test$ONTOLOGY, l_test$MAPPING_CATEGORY) %>%
+  tally(sort = T) %>%
+  ungroup()
 
-x <- c(1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012)
-roW <- c(219, 146, 112, 127, 124, 180, 236, 207, 236, 263, 350, 430, 474, 526, 488, 537, 500, 439)
-China <- c(16, 13, 10, 11, 28, 37, 43, 55, 56, 88, 105, 156, 270, 299, 340, 403, 549, 499)
-data3 <- data.frame(x, roW, China)
+# rename columns and rehape data so counts organize din rows by ontology 
+names(l_out)[names(l_out) == "l_test$ONTOLOGY"] <- "ONTOLOGY"
+names(l_out)[names(l_out) == "l_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
+names(l_out)[names(l_out) == "n"] <- "COUNT"
+l_out_plot <- cast(l_out, ONTOLOGY ~ MAPPING_CATEGORY)
 
-fig <- plot_ly(data3, x = ~x, y = ~roW, type = 'bar', name = 'Rest of the World',
-        marker = list(color = 'rgb(55, 83, 109)'))
-fig <- fig %>% add_trace(y = ~China, name = 'China', marker = list(color = 'rgb(26, 118, 255)'))
-fig <- fig %>% layout(title = 'US Export of Plastic Scrap',
-         xaxis = list(
-           title = "",
-           tickfont = list(
-             size = 14,
-             color = 'rgb(107, 107, 107)')),
-         yaxis = list(
-           title = 'USD (millions)',
-           titlefont = list(
-             size = 16,
-             color = 'rgb(107, 107, 107)'),
-           tickfont = list(
-             size = 14,
-             color = 'rgb(107, 107, 107)')),
-         legend = list(x = 0, y = 1, bgcolor = 'rgba(255, 255, 255, 0)', bordercolor = 'rgba(255, 255, 255, 0)'),
-         barmode = 'group', bargap = 0.15)
+# rename casted df and convert n/a values to 0
+names(l_out_plot)[names(l_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
+names(l_out_plot)<-str_replace_all(names(l_out_plot), c(" " = "." , "-" = "." ))
+l_out_plot[is.na(l_out_plot)] <- 0
 
+# create plot data
+onts <- l_out_plot$ONTOLOGY
+aca_df <- l_out_plot$Automatic.Constructor...Ancestor
+acc_df <- l_out_plot$Automatic.Constructor...Concept
+aea_df <- l_out_plot$Automatic.Exact...Ancestor
+aec_df <- l_out_plot$Automatic.Exact...Concept
+m_df <- l_out_plot$Manual
+mc_df <- l_out_plot$Manual.Constructor
+cs_df <- l_out_plot$Concept.Similarity
+data3 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
+
+# create plot
+fig <- plot_ly(data3, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
+fig <- fig %>% add_trace(y = ~acc_df, name = acc)
+fig <- fig %>% add_trace(y = ~aea_df, name = aea)
+fig <- fig %>% add_trace(y = ~aec_df, name = aec)
+fig <- fig %>% add_trace(y = ~m_df, name = m)
+fig <- fig %>% add_trace(y = ~mc_df, name = mc)
+fig <- fig %>% add_trace(y = ~cs_df, name = cs)
+fig <- fig %>% layout(yaxis = list(title = 'concept_id Count'),
+                      xaxis = list(title = 'Ontology'),
+                      title = "Mapped Measurement Results by Mapping Category and Ontology",
+                      barmode = 'group')
 fig
 ```
 
 ### Measurement Mapping Summary
 
 ```{r table3}
+# get concept mapping counts by ontology and mapping category
+l_out_table <- cast(l_out, MAPPING_CATEGORY ~ ONTOLOGY)
 
+# create table
+# declare factors, reorder columns, and make table
+l_out_table$MAPPING_CATEGORY <- as.factor(l_out_table$MAPPING_CATEGORY)
+vec <- c("MAPPING_CATEGORY", "HPO", "UBERON", "CHEBI", "CL", "PRO", "NCBITaxon")
+l_out_table <- l_out_table[vec]
+l_out_table[is.na(l_out_table)] <- 0
+datatable(l_out_table, filter = "top")
+
+# add table footer
 htmltools::div(
   # table,
   class = "lab-mapping-data",
@@ -313,7 +419,6 @@ datatable(cond_data_subset, filter = "top", options = list(
   searchHighlight = TRUE))
 ```
 
-
 ### Drug Ingredient Mappings
 
 ```{r table5}
@@ -334,10 +439,9 @@ datatable(drug_data_subset, filter = "top", options = list(
   searchHighlight = TRUE))
 ```
 
-
 ### Measurement Mappings
 
-```{r table6}
+```{r table6a}
 # declare factors
 lab_data$ONTOLOGY <- as.factor(lab_data$ONTOLOGY)
 lab_data$CONCEPT_ID <- as.factor(lab_data$CONCEPT_ID)
