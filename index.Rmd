@@ -441,7 +441,7 @@ datatable(drug_data_subset, filter = "top", options = list(
 
 ### Measurement Mappings
 
-```{r table6a}
+```{r table6}
 # declare factors
 lab_data$ONTOLOGY <- as.factor(lab_data$ONTOLOGY)
 lab_data$CONCEPT_ID <- as.factor(lab_data$CONCEPT_ID)
