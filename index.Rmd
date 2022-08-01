@@ -484,7 +484,7 @@ We developed `OMOP2OBO`, the first health system-wide integration and alignment 
 
 <div>
 ```{r picture1, echo = F, fig.width=10, fig.height=10}
-knitr::include_graphics("https://user-images.githubusercontent.com/8030363/99837291-972c1e00-2b24-11eb-826b-8141c6b7d1f0.png")
+knitr::include_graphics("https://user-images.githubusercontent.com/8030363/182207267-f674e6c0-af16-4b94-bdc1-45ddea43a7f7.png")
 ```
 </div>
 
