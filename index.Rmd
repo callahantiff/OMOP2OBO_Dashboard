@@ -22,7 +22,7 @@ library(tidyverse)
 #------------------ PROCESS MAPPING DATA ------------------
 # download data sets
 # condition data
-core_url = 'https://zenodo.org/record/6929364/files/OMOP2OBO_'
+core_url = 'https://zenodo.org/record/6949688/files/OMOP2OBO_'
 cond_data_hpo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
                             sheet='OMOP2OBO_HPO_Mapping_Results')
 cond_data_mondo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
@@ -33,7 +33,7 @@ cond_data_mondo <- cbind(ONTOLOGY = "MONDO", cond_data_mondo)
 cond_data <- rbind(cond_data_hpo, cond_data_mondo)
 cond_data <- cbind(cond_data[,1:10], cond_data[,16:20])
 # drug data
-core_url = 'https://zenodo.org/record/6929377/files/OMOP2OBO_'
+core_url = 'https://zenodo.org/record/6949696/files/OMOP2OBO_'
 drug_data_chebi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
                               sheet='OMOP2OBO_ChEBI_Mapping_Results')
 drug_data_pro = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
@@ -49,7 +49,7 @@ drug_data_vo <- cbind(ONTOLOGY = "VO", drug_data_vo)
 drug_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", drug_data_ncbi)
 drug_data <- rbind(drug_data_chebi, drug_data_pro, drug_data_vo, drug_data_ncbi)
 # measurement data
-core_url = 'https://zenodo.org/record/6929384/files/OMOP2OBO_'
+core_url = 'https://zenodo.org/record/6949858/files/OMOP2OBO_'
 lab_data_hpo = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
                            sheet='OMOP2OBO_HPO_Mapping_Results')
 lab_data_uberon = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
@@ -90,13 +90,13 @@ bar_chart <- function(label, width = "100%", height = "14px", fill = "#00bfc4", 
   htmltools::div(style = list(display = "flex", alignItems = "center"), label, chart)
 }
 # variables to use when plotting
-aca = "Automatic Constructor - Ancestor"
-acc = "Automatic Constructor - Concept"
-aea = "Automatic Exact - Ancestor"
-aec = "Automatic Exact - Concept"
-m = "Manual"
-mc = "Manual Constructor"
-cs = "Concept Similarity"
+aca = "Automatic One-to-Many Ancestor"
+acc = "Automatic One-to-Many Concept"
+aea = "Automatic One-to-One Ancestor"
+aec = "Automatic One-to-One Concept"
+m = "Manual One-to-One Concept"
+mc = "Manual One-to-Many Concept"
+cs = "Cosine Similarity One-to-One Concept"
 un = "Unmapped"
 ```
 
@@ -175,18 +175,17 @@ names(c_out)[names(c_out) == "c_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(c_out)[names(c_out) == "n"] <- "COUNT"
 c_out_plot <- cast(c_out, ONTOLOGY ~ MAPPING_CATEGORY)
 # rename casted df and convert n/a values to 0
-names(c_out_plot)[names(c_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
 names(c_out_plot)<-str_replace_all(names(c_out_plot), c(" " = "." , "-" = "." ))
 c_out_plot[is.na(c_out_plot)] <- 0
 # create plot data
 onts <- c_out_plot$ONTOLOGY
-aca_df <- c_out_plot$Automatic.Constructor...Ancestor
-acc_df <- c_out_plot$Automatic.Constructor...Concept
-aea_df <- c_out_plot$Automatic.Exact...Ancestor
-aec_df <- c_out_plot$Automatic.Exact...Concept
-m_df <- c_out_plot$Manual
-mc_df <- c_out_plot$Manual.Constructor
-cs_df <- c_out_plot$Concept.Similarity
+aca_df <- c_out_plot$Automatic.One.to.Many.Ancestor
+acc_df <- c_out_plot$Automatic.One.to.Many.Concept
+aea_df <- c_out_plot$Automatic.One.to.One.Ancestor
+aec_df <- c_out_plot$Automatic.One.to.One.Concept
+m_df <- c_out_plot$Manual.One.to.One.Concept
+mc_df <- c_out_plot$Manual.One.to.Many.Concept
+cs_df <- c_out_plot$Cosine.Similarity.One.to.One.Concept
 data1 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
 # create plot
 fig <- plot_ly(data1, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
@@ -244,18 +243,17 @@ names(d_out)[names(d_out) == "d_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(d_out)[names(d_out) == "n"] <- "COUNT"
 d_out_plot <- cast(d_out, ONTOLOGY ~ MAPPING_CATEGORY)
 # rename casted df and convert n/a values to 0
-names(d_out_plot)[names(d_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
 names(d_out_plot)<-str_replace_all(names(d_out_plot), c(" " = "." , "-" = "." ))
 d_out_plot[is.na(d_out_plot)] <- 0
 # create plot data
 onts <- d_out_plot$ONTOLOGY
-aca_df <- d_out_plot$Automatic.Constructor...Ancestor
-acc_df <- d_out_plot$Automatic.Constructor...Concept
-aea_df <- d_out_plot$Automatic.Exact...Ancestor
-aec_df <- d_out_plot$Automatic.Exact...Concept
-m_df <- d_out_plot$Manual
-mc_df <- d_out_plot$Manual.Constructor
-cs_df <- d_out_plot$Concept.Similarity
+aca_df <- d_out_plot$Automatic.One.to.Many.Ancestor
+acc_df <- d_out_plot$Automatic.One.to.Many.Concept
+aea_df <- d_out_plot$Automatic.One.to.One.Ancestor
+aec_df <- d_out_plot$Automatic.One.to.One.Concept
+m_df <- d_out_plot$Manual.One.to.One.Concept
+mc_df <- d_out_plot$Manual.One.to.Many.Concept
+cs_df <- d_out_plot$Cosine.Similarity.One.to.One.Concept
 data2 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
 # create plot
 fig <- plot_ly(data2, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
@@ -313,18 +311,17 @@ names(l_out)[names(l_out) == "l_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(l_out)[names(l_out) == "n"] <- "COUNT"
 l_out_plot <- cast(l_out, ONTOLOGY ~ MAPPING_CATEGORY)
 # rename casted df and convert n/a values to 0
-names(l_out_plot)[names(l_out_plot) == "Manual Exact - Concept Similarity"] <- "Concept Similarity"
 names(l_out_plot)<-str_replace_all(names(l_out_plot), c(" " = "." , "-" = "." ))
 l_out_plot[is.na(l_out_plot)] <- 0
 # create plot data
 onts <- l_out_plot$ONTOLOGY
-aca_df <- l_out_plot$Automatic.Constructor...Ancestor
-acc_df <- l_out_plot$Automatic.Constructor...Concept
-aea_df <- l_out_plot$Automatic.Exact...Ancestor
-aec_df <- l_out_plot$Automatic.Exact...Concept
-m_df <- l_out_plot$Manual
-mc_df <- l_out_plot$Manual.Constructor
-cs_df <- l_out_plot$Concept.Similarity
+aca_df <- l_out_plot$Automatic.One.to.Many.Ancestor
+acc_df <- l_out_plot$Automatic.One.to.Many.Concept
+aea_df <- l_out_plot$Automatic.One.to.One.Ancestor
+aec_df <- l_out_plot$Automatic.One.to.One.Concept
+m_df <- l_out_plot$Manual.One.to.One.Concept
+mc_df <- l_out_plot$Manual.One.to.Many.Concept
+cs_df <- l_out_plot$Cosine.Similarity.One.to.One.Concept
 data3 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
 # create plot
 fig <- plot_ly(data3, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
@@ -484,7 +481,7 @@ We developed `OMOP2OBO`, the first health system-wide integration and alignment 
 
 <div>
 ```{r picture1, echo = F, fig.width=10, fig.height=10}
-knitr::include_graphics("https://user-images.githubusercontent.com/8030363/99837291-972c1e00-2b24-11eb-826b-8141c6b7d1f0.png")
+knitr::include_graphics("https://user-images.githubusercontent.com/8030363/182207267-f674e6c0-af16-4b94-bdc1-45ddea43a7f7.png")
 ```
 </div>
 
