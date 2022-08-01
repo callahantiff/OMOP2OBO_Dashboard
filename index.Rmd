@@ -72,9 +72,9 @@ lab_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", lab_data_ncbi)
 lab_data <- rbind(lab_data_hpo, lab_data_uberon, lab_data_chebi, lab_data_cl,
                   lab_data_pro, lab_data_ncbi)
 # # get value board counts
-cond_count <- n_distinct(cond_data$CONCEPT_ID)
-drug_count<- n_distinct(drug_data$CONCEPT_ID)
-lab_count <- n_distinct(lab_data$CONCEPT_ID)
+cond_count <- n_distinct(subset(cond_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
+drug_count <- n_distinct(subset(drug_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
+lab_count <- n_distinct(subset(lab_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
 #------------------ Parameters ------------------
 # set value board colors
 # https://www.w3.org/TR/css-color-3/#svg-color
