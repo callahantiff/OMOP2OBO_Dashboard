@@ -1,0 +1,9 @@
+"0","c_out_table <- cast(c_out, MAPPING_CATEGORY ~ ONTOLOGY)
+"
+"2","Using COUNT as value column.  Use the value argument to cast to override this choice
+"
+"0",""
+"0","# create table"
+"0","# declare factors and make table"
+"0","c_out_table$MAPPING_CATEGORY <- as.factor(c_out_table$MAPPING_CATEGORY)"
+"0","datatable(c_out_table, filter = ""top"")"
