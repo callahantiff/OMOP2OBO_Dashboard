@@ -19,7 +19,7 @@ library(plotly)
 library(reshape)
 library(rio)
 library(tidyverse)
-#------------------ PROCESS MAPPING DATA ------------------
+#------------------ READ MAPPING DATA ------------------
 cond_data <- arrow::read_parquet(file.path("data", "cond_data.parquet"))
 drug_data <- arrow::read_parquet(file.path("data", "drug_data.parquet"))
 lab_data <- arrow::read_parquet(file.path("data", "lab_data.parquet"))
@@ -116,13 +116,13 @@ Row  {.tabset .tabset-fade}
 
 ```{r}
 # get concept mapping counts by ontology and mapping category
-c_test = cond_data[,c(1, 2, 14)]
+c_test = cond_data[,c(1, 2, 8)]
 c_test$ONTOLOGY <- as.factor(c_test$ONTOLOGY)
 c_out <- c_test %>%
   group_by(c_test$ONTOLOGY, c_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(c_out)[names(c_out) == "c_test$ONTOLOGY"] <- "ONTOLOGY"
 names(c_out)[names(c_out) == "c_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(c_out)[names(c_out) == "n"] <- "COUNT"
@@ -190,7 +190,7 @@ d_out <- d_test %>%
   group_by(d_test$ONTOLOGY, d_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(d_out)[names(d_out) == "d_test$ONTOLOGY"] <- "ONTOLOGY"
 names(d_out)[names(d_out) == "d_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(d_out)[names(d_out) == "n"] <- "COUNT"
@@ -258,7 +258,7 @@ l_out <- l_test %>%
   group_by(l_test$ONTOLOGY, l_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(l_out)[names(l_out) == "l_test$ONTOLOGY"] <- "ONTOLOGY"
 names(l_out)[names(l_out) == "l_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(l_out)[names(l_out) == "n"] <- "COUNT"
@@ -319,7 +319,7 @@ htmltools::div(
 Data {data-icon="fa-table"}
 ===================================== 
 
-Row {.tabset .tabset-fade}
+Row {data-height=1500 data-width=1500 .tabset}
 -------------------------------------
 
 ### Condition Occurrence Mappings
