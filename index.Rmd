@@ -31,7 +31,9 @@ cond_data_mondo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_O
 cond_data_hpo <- cbind(ONTOLOGY = "HPO", cond_data_hpo)
 cond_data_mondo <- cbind(ONTOLOGY = "MONDO", cond_data_mondo)
 cond_data <- rbind(cond_data_hpo, cond_data_mondo)
-cond_data <- cbind(cond_data[,1:10], cond_data[,16:20])
+cond_data <- cbind(cond_data[,1:2], cond_data[, 4:5], cond_data[,16:20])
+cond_data <- cond_data[, c(1, 2, 4, 3, 5, 6, 7, 8, 9)]
+
 # drug data
 core_url = 'https://zenodo.org/record/6949696/files/OMOP2OBO_'
 drug_data_chebi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
@@ -163,13 +165,13 @@ Row  {.tabset .tabset-fade}
 
 ```{r}
 # get concept mapping counts by ontology and mapping category
-c_test = cond_data[,c(1, 2, 14)]
+c_test = cond_data[,c(1, 2, 8)]
 c_test$ONTOLOGY <- as.factor(c_test$ONTOLOGY)
 c_out <- c_test %>%
   group_by(c_test$ONTOLOGY, c_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(c_out)[names(c_out) == "c_test$ONTOLOGY"] <- "ONTOLOGY"
 names(c_out)[names(c_out) == "c_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(c_out)[names(c_out) == "n"] <- "COUNT"
@@ -237,7 +239,7 @@ d_out <- d_test %>%
   group_by(d_test$ONTOLOGY, d_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(d_out)[names(d_out) == "d_test$ONTOLOGY"] <- "ONTOLOGY"
 names(d_out)[names(d_out) == "d_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(d_out)[names(d_out) == "n"] <- "COUNT"
@@ -305,7 +307,7 @@ l_out <- l_test %>%
   group_by(l_test$ONTOLOGY, l_test$MAPPING_CATEGORY) %>%
   tally(sort = T) %>%
   ungroup()
-# rename columns and rehape data so counts organize din rows by ontology 
+# rename columns and reshape data so counts organize din rows by ontology 
 names(l_out)[names(l_out) == "l_test$ONTOLOGY"] <- "ONTOLOGY"
 names(l_out)[names(l_out) == "l_test$MAPPING_CATEGORY"] <- "MAPPING_CATEGORY"
 names(l_out)[names(l_out) == "n"] <- "COUNT"
@@ -366,7 +368,7 @@ htmltools::div(
 Data {data-icon="fa-table"}
 ===================================== 
 
-Row {.tabset .tabset-fade}
+Row {data-height=1500 data-width=1500 .tabset}
 -------------------------------------
 
 ### Condition Occurrence Mappings
