@@ -31,11 +31,13 @@ library(reshape)
 library(tidyverse)
 
 
+
 #------------------ READ MAPPING DATA ------------------
 # load data
 cond_data <- arrow::read_parquet(file.path("data", "cond_data.parquet"))
 drug_data <- arrow::read_parquet(file.path("data", "drug_data.parquet"))
 lab_data <- arrow::read_parquet(file.path("data", "lab_data.parquet"))
+
 
 # get value board counts
 cond_count <- n_distinct(subset(cond_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
@@ -223,14 +225,14 @@ mc_df <- d_out_plot$Manual.One.to.Many.Concept
 cs_df <- d_out_plot$Cosine.Similarity.One.to.One.Concept
 data2 <- data.frame(onts, aca_df, acc_df, aea_df, aec_df, m_df, mc_df, cs_df)
 # create plot
-fig <- plot_ly(data2, x = ~onts, y = ~aca_df, type = 'bar', name = aca)
-fig <- fig %>% add_trace(y = ~acc_df, name = acc)
-fig <- fig %>% add_trace(y = ~aea_df, name = aea)
-fig <- fig %>% add_trace(y = ~aec_df, name = aec)
-fig <- fig %>% add_trace(y = ~m_df, name = m)
-fig <- fig %>% add_trace(y = ~mc_df, name = mc)
-fig <- fig %>% add_trace(y = ~cs_df, name = cs)
-fig <- fig %>% layout(yaxis = list(title = 'Concept Count'),
+fig <- plot_ly(data2, x = ~onts, y = ~aca_df, type = 'bar', name = aca) %>% 
+  add_trace(y = ~acc_df, name = acc) %>% 
+  add_trace(y = ~aea_df, name = aea) %>% 
+  add_trace(y = ~aec_df, name = aec) %>% 
+  add_trace(y = ~m_df, name = m) %>% 
+  add_trace(y = ~mc_df, name = mc) %>% 
+  add_trace(y = ~cs_df, name = cs) %>% 
+  layout(yaxis = list(title = 'Concept Count'),
                       xaxis = list(title = 'Ontology'),
                       title = "Mapped Drug Ingredients Count by Mapping Category and Ontology",
                       barmode = 'group')
