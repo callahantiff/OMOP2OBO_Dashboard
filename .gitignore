@@ -1,6 +1,13 @@
-docs/README.html
+# environment variables
 .Rproj.user
 .Rhistory
-README.html
 .DS_Store
 .RData
+
+# html files
+docs/README.html
+README.html
+
+# data
+data/*
+docs/data/*
