@@ -10,6 +10,17 @@ output:
     theme: flatly
 ---
 
+
+```{r download mapping data, include=FALSE}
+# set download_data to TRUE to downloaded or update mapping data
+download_data = FALSE
+
+if (download_data) {
+  source("download_data.R")
+}
+
+```
+
 ```{r setup, include=FALSE}
 library(crosstalk)
 library(dplyr)
@@ -17,17 +28,22 @@ library(DT)
 library(flexdashboard)
 library(plotly)
 library(reshape)
-library(rio)
 library(tidyverse)
+
+
+
 #------------------ READ MAPPING DATA ------------------
+# load data
 cond_data <- arrow::read_parquet(file.path("data", "cond_data.parquet"))
 drug_data <- arrow::read_parquet(file.path("data", "drug_data.parquet"))
 lab_data <- arrow::read_parquet(file.path("data", "lab_data.parquet"))
 
-# # get value board counts
+
+# get value board counts
 cond_count <- n_distinct(subset(cond_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
 drug_count <- n_distinct(subset(drug_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
 lab_count <- n_distinct(subset(lab_data, !(ONTOLOGY_URI %in% c('NOT YET MAPPED')))$CONCEPT_ID)
+
 #------------------ Parameters ------------------
 # set value board colors
 # https://www.w3.org/TR/css-color-3/#svg-color
@@ -538,4 +554,4 @@ The OMOP2OBO Dashboard provides up-to-date information on the current `OMOP2OBO`
 We’d love to hear from you! To get in touch with us, please  
 🧵 Join or start a new [discussion](https://github.com/callahantiff/OMOP2OBO_Dashboard/discussions)  
 🎯 Create an [issue](https://github.com/callahantiff/OMOP2OBO_Dashboard/issues)  
-💌 Send us an [email](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=callahantiff@gmail.com) 
+💌 Send us an [email](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&to=callahantiff@gmail.com)

@@ -1,60 +1,89 @@
+###############################################################################
+## R Script: download xlsx files from Zenodo and save formatted data locally ##
+###############################################################################
+library(arrow)
+library(rio)
 
 
-core_url = 'https://zenodo.org/record/6949688/files/OMOP2OBO_'
-cond_data_hpo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
-                            sheet='OMOP2OBO_HPO_Mapping_Results')
-cond_data_mondo = rio::import(paste(core_url, 'V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1', sep=''),
-                              sheet='OMOP2OBO_Mondo_Mapping_Results')
-# combine sheets into one dataframe
-cond_data_hpo <- cbind(ONTOLOGY = "HPO", cond_data_hpo)
-cond_data_mondo <- cbind(ONTOLOGY = "MONDO", cond_data_mondo)
-cond_data <- rbind(cond_data_hpo, cond_data_mondo)
-cond_data <- cbind(cond_data[,1:10], cond_data[,16:20])
+# define global function
+process_data = function(ont_list, df_file) {
+  ont_len = length(ont_list)
+  df_list = vector("list", ont_len)
+  
+  for (x1 in ont_list) {
+    i = match(x1, ont_list)
+    if (x1 == "NCBITa") {x2 = "NCBITaxon"} else {x2 = toupper(x1)}
+    progress = paste(round((i/ont_len)*100), "%", sep="")
+    print(paste(progress, ' - Downloading: ', x2, sep=""))
+    
+    # set sheet name, download data, add ont column, and add it to df list
+    sheet_name = paste("OMOP2OBO_", x1, "_Mapping_Results", sep="")
+    df = rio::import(df_file, sheet=sheet_name)
+    df_list[[i]] = cbind(ONTOLOGY = x2, df)
+  }
+  # concatenate data
+  data = do.call("rbind", df_list)
+}
 
-arrow::write_parquet(cond_data, file.path("data", "cond_data.parquet"))
 
-# drug data
-core_url = 'https://zenodo.org/record/6949696/files/OMOP2OBO_'
-drug_data_chebi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
-                              sheet='OMOP2OBO_ChEBI_Mapping_Results')
-drug_data_pro = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
-                            sheet='OMOP2OBO_PRO_Mapping_Results')
-drug_data_vo = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
-                           sheet='OMOP2OBO_VO_Mapping_Results')
-drug_data_ncbi = rio::import(paste(core_url, 'V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1', sep=''),
-                             sheet='OMOP2OBO_NCBITa_Mapping_Results')
-# combine sheets into one dataframe
-drug_data_chebi <- cbind(ONTOLOGY = "CHEBI", drug_data_chebi)
-drug_data_pro <- cbind(ONTOLOGY = "PRO", drug_data_pro)
-drug_data_vo <- cbind(ONTOLOGY = "VO", drug_data_vo)
-drug_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", drug_data_ncbi)
-drug_data <- rbind(drug_data_chebi, drug_data_pro, drug_data_vo, drug_data_ncbi)
+################################# CONDIITONS #################################
+cat("\n\n\n")
+symb = paste(replicate(25, "*"), collapse = "")
+print(paste(symb, "Downloading Condition Concept Mapping Data", symb))
 
-arrow::write_parquet(drug_data, file.path("data", "drug_data.parquet"))
+# download condition concept mappings
+# set variables
+cond_id = "6949688"
+core_url = paste("https://zenodo.org/record/", cond_id, "/files/OMOP2OBO_", sep="")
+cond_file = paste(core_url, "V1_Condition_Occurrence_Mapping_Oct2020.xlsx?download=1", sep="")
+cond_onts = c("HPO", "Mondo")
 
-# measurement data
-core_url = 'https://zenodo.org/record/6949858/files/OMOP2OBO_'
-lab_data_hpo = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                           sheet='OMOP2OBO_HPO_Mapping_Results')
-lab_data_uberon = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                              sheet='OMOP2OBO_UBERON_Mapping_Results')
-lab_data_chebi = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                             sheet='OMOP2OBO_ChEBI_Mapping_Results')
-lab_data_cl = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                          sheet='OMOP2OBO_CL_Mapping_Results')
-lab_data_pro = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                           sheet='OMOP2OBO_PRO_Mapping_Results')
-lab_data_ncbi = rio::import(paste(core_url, 'V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1', sep=''),
-                            sheet='OMOP2OBO_NCBITa_Mapping_Results')
+# download data files by sheet
+cond_data = process_data(cond_onts, cond_file)
+cond_data = cbind(cond_data[,1:2], cond_data[,4:5], cond_data[,16:20])
+cond_data = cond_data[,c(1, 2, 4, 3, 5, 6, 7, 8, 9)]
 
-# combine sheets into one dataframe
-lab_data_hpo <- cbind(ONTOLOGY = "HPO", lab_data_hpo)
-lab_data_uberon <- cbind(ONTOLOGY = "UBERON", lab_data_uberon)
-lab_data_chebi <- cbind(ONTOLOGY = "CHEBI", lab_data_chebi)
-lab_data_cl <- cbind(ONTOLOGY = "CL", lab_data_cl)
-lab_data_pro <- cbind(ONTOLOGY = "PRO", lab_data_pro)
-lab_data_ncbi <- cbind(ONTOLOGY = "NCBITaxon", lab_data_ncbi)
-lab_data <- rbind(lab_data_hpo, lab_data_uberon, lab_data_chebi, lab_data_cl,
-                  lab_data_pro, lab_data_ncbi)
+# save data locally
+file_path = file.path("data", "cond_data.parquet")
+print(paste('Saving Data to: ', file_path))
+arrow::write_parquet(cond_data, file_path)
 
-arrow::write_parquet(lab_data, file.path("data", "lab_data.parquet"))
+
+############################## DRUG INGREDIENTS ##############################
+cat("\n\n\n")
+print(paste(symb, "Downloading Drug Ingredient Concept Mapping Data", symb))
+
+# download drug ingredient mappings
+# set variables
+drug_id = "6949696"
+core_url = paste("https://zenodo.org/record/", drug_id, "/files/OMOP2OBO_", sep="")
+drug_file = paste(core_url, "V1_Drug_Exposure_Mapping_Oct2020.xlsx?download=1", sep="")
+drug_onts = c("ChEBI", "PRO", "VO", "NCBITa")
+
+# download data files by sheet
+drug_data = process_data(drug_onts, drug_file)
+
+# save data locally
+file_path = file.path("data", "drug_data.parquet")
+print(paste('Saving Data to: ', file_path))
+arrow::write_parquet(drug_data, file_path)
+
+
+################################# MEASUREMENTS #################################
+cat("\n\n\n")
+print(paste(symb, "Downloading Measurement Concept Mapping Data", symb))
+
+# download measurement mappings
+# set variables
+lab_id = "6949858"
+core_url = paste("https://zenodo.org/record/", lab_id, "/files/OMOP2OBO_", sep="")
+lab_file = paste(core_url, "V1_Measurement_Mapping_LOINC2HPO_Oct2020.xlsx?download=1", sep="")
+lab_onts = c("HPO", "UBERON", "ChEBI", "CL", "PRO", "NCBITa")
+
+# download data files by sheet
+lab_data = process_data(lab_onts, lab_file)
+
+# save data locally
+file_path = file.path("data", "lab_data.parquet")
+print(paste('Saving Data to: ', file_path))
+arrow::write_parquet(lab_data, file_path)
