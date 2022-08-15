@@ -300,7 +300,7 @@ fig <- fig %>% add_trace(y = ~aec_df, name = aec)
 fig <- fig %>% add_trace(y = ~m_df, name = m)
 fig <- fig %>% add_trace(y = ~mc_df, name = mc)
 fig <- fig %>% add_trace(y = ~cs_df, name = cs)
-fig <- fig %>% layout(yaxis = list(title = 'concept_id Count'),
+fig <- fig %>% layout(yaxis = list(title = 'Concept Count'),
                       xaxis = list(title = 'Ontology'),
                       title = "Mapped Measurement Results by Mapping Category and Ontology",
                       barmode = 'group')
@@ -335,6 +335,18 @@ htmltools::div(
 Data {data-icon="fa-table"}
 ===================================== 
 
+```{r comment1}
+htmltools::div(
+  class = "dx-mapping-data",
+  htmltools::div(class = "mapping-data-header",
+                 htmltools::div(
+                   class = "mapping-data-header",
+                   "Source: OMOP2OBO v1.0 - Data limited to 5,000 rows"))
+)
+```
+
+
+
 Row {data-height=1500 data-width=1500 .tabset}
 -------------------------------------
 
@@ -354,15 +366,6 @@ table <- datatable(cond_data_subset, filter = "top", options = list(
   pageLength = 10,
   lengthMenu = c(10, 25, 50, 100, 500),
   searchHighlight = TRUE))
-# add table header
-# htmltools::div(
-#   class = "dx-mapping-data",
-#   htmltools::div(class = "dx-mapping-data-footer",
-#                  htmltools::div(
-#                    class = "dx-mapping-data-title",
-#                    "Source: OMOP2OBO v1.0 - OMOP v5.3; Data limted to 5,000 rows"),
-#                  table)
-# )
 table
 ```
 
@@ -382,15 +385,6 @@ table <- datatable(drug_data_subset, filter = "top", options = list(
   pageLength = 10,
   lengthMenu = c(10, 25, 50, 100, 500),
   searchHighlight = TRUE))
-# add table header
-# htmltools::div(
-#   class = "rx-mapping-data",
-#   htmltools::div(class = "rx-mapping-data-footer",
-#                  htmltools::div(
-#                    class = "rx-mapping-data-title",
-#                    "Source: OMOP2OBO v1.0 - OMOP v5.3; Data limted to 5,000 rows"),
-#                  table)
-# )
 table
 ```
 
@@ -408,19 +402,10 @@ lab_data$MAPPING_CATEGORY <- as.factor(lab_data$MAPPING_CATEGORY)
 lab_data <- drug_data[order(lab_data$CONCEPT_ID),]
 lab_data_subset <- lab_data[1:5000, ]
 # make table
-table <- datatable(lab_data, filter = "top", options = list(
+table <- datatable(lab_data_subset, filter = "top", options = list(
   pageLength = 10,
   lengthMenu = c(10, 25, 50, 100, 500),
   searchHighlight = TRUE))
-# add table header
-# htmltools::div(
-#   class = "lab-mapping-data",
-#   htmltools::div(class = "lab-mapping-data-footer",
-#                  htmltools::div(
-#                    class = "lab-mapping-data-title",
-#                    "Source: OMOP2OBO v1.0 - OMOP v5.3; Data limted to 5,000 rows"),
-#                  table)
-# )
 table
 ```
 
