@@ -12,7 +12,7 @@ The OMOP2OBO Dashboard provides updated statistics, data, and information about 
 <br>
 
 **OMOP2OBO**  
-For more information on the OMOP2OBO algorithm or mappings please see the primary GitHub site: https://github.com/callahantiff/OMOP2OBO.  
+For more information on the OMOP2OBO algorithm or mappings please see the primary GitHub site: https://github.com/callahantiff/OMOP2OBO. The dashboard is featured in the manuscript preprint on OMOP2OBO, which is now available on [arXiv](https://doi.org/10.48550/arXiv.2209.04732). 
 
 <br>
 
